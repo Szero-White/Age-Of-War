@@ -214,9 +214,6 @@ Mọi đóng góp đều được hoan nghênh! 🥳
 
 ## 📄 Giấy phép
 
-Chưa có thông tin giấy phép trong README.  
-Bạn có thể thêm file `LICENSE` (MIT/Apache-2.0/GPL-3.0...) tùy mục tiêu.
-
 ---
 
 ## 📬 Liên hệ
