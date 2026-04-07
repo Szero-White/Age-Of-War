@@ -1,7 +1,7 @@
 # Age Of War
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/banner.png" alt="Age Of War Banner" width="900"/>
+  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/h1.jpg" alt="Age Of War Banner" width="900"/>
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 - 🌍 **Đối đầu AI hoặc PvP** (nếu có)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/screenshot-1.png" alt="Gameplay Screenshot" width="800"/>
+  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/h2.jpg" alt="Gameplay Screenshot" width="800"/>
 </p>
 
 > 💡 **Gợi ý:** Nếu bạn chưa có ảnh, hãy tạo thư mục `assets/` và đặt tạm các ảnh `banner.png`, `screenshot-1.png`, `screenshot-2.png`. Khi có ảnh thật chỉ cần thay đúng tên file.
@@ -190,7 +190,7 @@ wasm-pack build --target web
 ## 🖼️ Hình ảnh minh họa
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/screenshot-2.png" alt="Screenshot 2" width="800"/>
+  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/h3.jpg" alt="Screenshot 2" width="800"/>
 </p>
 
 ---
