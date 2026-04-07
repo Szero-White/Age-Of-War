@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age of War 3 - Trò Chơi Chiến Thuật (Rust + WASM)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="top-bar">
+            <div class="player-info">
+                <div class="player player-left">
+                    <div class="castle-health">
+                        <span class="label">Lâu Đài Của Bạn</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="playerHealth"></div>
+                        </div>
+                        <span id="playerHealthText" class="health-text">100/100</span>
+                    </div>
+                    <div class="player-stats">
+                        <div class="stat">
+                            <span class="stat-icon">💰</span>
+                            <span id="playerGold" class="stat-value">500</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">⚔️</span>
+                            <span id="playerUnits" class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🏛️</span>
+                            <span id="playerEra" class="stat-value">Thời Nguyên Thủy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vs-display">
+                    <span class="vs">VS</span>
+                    <div class="wave-info">
+                        <span id="waveText">Sóng 1</span>
+                    </div>
+                </div>
+
+                <div class="player player-right">
+                    <div class="castle-health">
+                        <span class="label">Lâu Đài Địch</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="enemyHealth"></div>
+                        </div>
+                        <span id="enemyHealthText" class="health-text">100/100</span>
+                    </div>
+                    <div class="player-stats">
+                        <div class="stat">
+                            <span class="stat-icon">💰</span>
+                            <span id="enemyGold" class="stat-value">500</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">⚔️</span>
+                            <span id="enemyUnits" class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-icon">🏛️</span>
+                            <span id="enemyEra" class="stat-value">Thời Nguyên Thủy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="upgrades-section">
+                <h3>Năng Lực Nâng Cấp</h3>
+                <div class="upgrades-grid" id="upgradesGrid">
+                    <!-- Buttons will be dynamically generated -->
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="pauseBtn" class="control-btn pause-btn">⏸ Tạm Dừng</button>
+                <button id="resetBtn" class="control-btn reset-btn">🔄 Chơi Lại</button>
+                <button id="speedBtn" class="control-btn speed-btn">⏩ Tốc Độ</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="game-over-screen hidden">
+            <div class="game-over-content">
+                <h1 id="gameOverTitle">Bạn Thắng!</h1>
+                <p id="gameOverText">Xin chúc mừng!</p>
+                <button onclick="location.reload()" class="game-over-btn">Chơi Lại</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, * as wasm from './rust_src/pkg/age_of_war.js';
+
+        const ERAS = [
+            'Thời Nguyên Thủy',
+            'Thời Trung Cổ',
+            'Thời Công Nghiệp',
+            'Thời Hiện Đại',
+            'Thời Tương Lai'
+        ];
+
+        const UNIT_NAMES = ['🐷 Lính', '🏹 Thủ Cung', '⚔️ Hiệp Sĩ', '🔮 Pháp Sư'];
+        const UNIT_COSTS = [50, 80, 120, 150];
+
+        let gameSpeed = 1;
+        let lastGameOverState = false;
+
+        async function main() {
+            await init();
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = window.innerWidth - 40;
+            canvas.height = window.innerHeight - 250;
+
+            // Initialize game
+            wasm.create_game();
+
+            // Setup event listeners
+            document.getElementById('pauseBtn').addEventListener('click', function() {
+                wasm.toggle_pause();
+                this.textContent = '▶ Tiếp Tục'; // Will toggle on next update
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                wasm.reset_game();
+                lastGameOverState = false;
+                document.getElementById('gameOverScreen').classList.add('hidden');
+                updateUpgradeButtons();
+            });
+
+            document.getElementById('speedBtn').addEventListener('click', function() {
+                gameSpeed = gameSpeed === 1 ? 2 : 1;
+                this.textContent = gameSpeed === 1 ? '⏩ Tốc Độ' : '⏸ Bình Thường';
+            });
+
+            // Game loop
+            function gameLoop() {
+                // Update game (run speedFactor times)
+                for (let i = 0; i < gameSpeed; i++) {
+                    wasm.update_game();
+                }
+
+                // Draw
+                drawGame(ctx, canvas);
+
+                // Update UI
+                updateUI();
+                updateUpgradeButtons();
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            updateUpgradeButtons();
+            gameLoop();
+        }
+
+        function drawGame(ctx, canvas) {
+            // Background
+            ctx.fillStyle = '#1a3a52';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground
+            ctx.fillStyle = '#4a6fa5';
+            ctx.fillRect(0, canvas.height * 0.6, canvas.width, canvas.height * 0.4);
+
+            // Draw castles
+            drawCastle(ctx, 80, canvas.height * 0.5, wasm.get_player_era(), false);
+            drawCastle(ctx, canvas.width - 80, canvas.height * 0.5, wasm.get_enemy_era(), true);
+
+            // Draw units
+            const unitsJson = wasm.get_units_json();
+            const units = JSON.parse(unitsJson);
+            
+            for (const unit of units) {
+                drawUnit(ctx, unit, canvas);
+            }
+
+            // Wave progress bar
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.3)';
+            ctx.fillRect(0, 0, canvas.width * wasm.get_wave_progress(), 5);
+        }
+
+        function drawCastle(ctx, x, y, era, isEnemy) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            if (isEnemy) ctx.scale(-1, 1);
+
+            const colors = ['#8B4513', '#FF6B6B', '#FFD700', '#00D4FF', '#A020F0'];
+            const color = colors[era] || '#8B4513';
+
+            // Main tower
+            ctx.fillStyle = color;
+            ctx.fillRect(-40, -80, 80, 120);
+
+            // Roof
+            ctx.fillStyle = '#DAA520';
+            ctx.beginPath();
+            ctx.moveTo(-50, -80);
+            ctx.lineTo(0, -120);
+            ctx.lineTo(50, -80);
+            ctx.fill();
+
+            // Flag
+            ctx.fillStyle = color;
+            ctx.fillRect(-5, -130, 10, 50);
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(5, -130);
+            ctx.lineTo(25, -125);
+            ctx.lineTo(5, -120);
+            ctx.fill();
+
+            // Walls
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(-50, -80, 50, 80);
+            ctx.strokeRect(0, -80, 50, 80);
+
+            ctx.restore();
+        }
+
+        function drawUnit(ctx, unit, canvas) {
+            ctx.save();
+            ctx.translate(unit.x, unit.y);
+
+            if (unit.is_enemy) ctx.scale(-1, 1);
+
+            ctx.fillStyle = unit.get_color ? unit.get_color : '#8B4513';
+
+            // Draw unit based on type
+            const unitType = unit.unit_type;
+            const size = unit.size;
+
+            if (unitType === 0) {
+                // Soldier
+                ctx.fillRect(-size / 2, -size, size, size * 1.5);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(-size / 4, -size * 0.5, size / 2, size / 2);
+            } else if (unitType === 1) {
+                // Archer
+                ctx.fillRect(-size / 3, -size * 1.2, size * 0.66, size * 1.5);
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(-size * 0.4, -size * 1.1, size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (unitType === 2) {
+                // Knight
+                ctx.fillStyle = '#888';
+                ctx.fillRect(-size * 0.6, -size * 1.2, size * 1.2, size * 1.8);
+                ctx.fillStyle = ['#8B4513', '#FF6B6B', '#FFD700', '#00D4FF', '#A020F0'][unit.era_level] || '#8B4513';
+                ctx.fillRect(-size * 0.4, -size, size * 0.8, size * 1.2);
+            } else if (unitType === 3) {
+                // Mage
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.8, -size * 0.5);
+                ctx.lineTo(size * 0.8, -size * 0.5);
+                ctx.lineTo(0, size);
+                ctx.fill();
+                // Staff
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(size * 0.3, -size * 0.8);
+                ctx.lineTo(size * 0.3, size * 0.5);
+                ctx.stroke();
+            }
+
+            // Health bar
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(-size * 0.6, -size * 1.6, size * 1.2, 3);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(-size * 0.6, -size * 1.6, (size * 1.2) * (unit.hp / unit.max_hp), 3);
+
+            ctx.restore();
+        }
+
+        function updateUI() {
+            const playerHealth = wasm.get_player_health();
+            const playerMaxHealth = wasm.get_player_max_health();
+            const playerGold = wasm.get_player_gold();
+            const playerEra = wasm.get_player_era();
+            const playerUnitsCount = wasm.get_player_units_count();
+
+            const enemyHealth = wasm.get_enemy_health();
+            const enemyMaxHealth = wasm.get_enemy_max_health();
+            const enemyGold = wasm.get_enemy_gold();
+            const enemyEra = wasm.get_enemy_era();
+            const enemyUnitsCount = wasm.get_enemy_units_count();
+
+            const wave = wasm.get_wave();
+            const isGameOver = wasm.is_game_over();
+            const isPlayerWon = wasm.is_player_won();
+
+            // Update player UI
+            document.getElementById('playerHealth').style.width = (playerHealth / playerMaxHealth) * 100 + '%';
+            document.getElementById('playerHealthText').textContent = playerHealth + '/' + playerMaxHealth;
+            document.getElementById('playerGold').textContent = playerGold;
+            document.getElementById('playerUnits').textContent = playerUnitsCount;
+            document.getElementById('playerEra').textContent = ERAS[playerEra];
+
+            // Update enemy UI
+            document.getElementById('enemyHealth').style.width = (enemyHealth / enemyMaxHealth) * 100 + '%';
+            document.getElementById('enemyHealthText').textContent = enemyHealth + '/' + enemyMaxHealth;
+            document.getElementById('enemyGold').textContent = enemyGold;
+            document.getElementById('enemyUnits').textContent = enemyUnitsCount;
+            document.getElementById('enemyEra').textContent = ERAS[enemyEra];
+
+            // Wave display
+            document.getElementById('waveText').textContent = `Sóng ${wave}`;
+
+            // Game over screen
+            if (isGameOver && !lastGameOverState) {
+                lastGameOverState = true;
+                const screen = document.getElementById('gameOverScreen');
+                screen.classList.remove('hidden');
+                document.getElementById('gameOverTitle').textContent = isPlayerWon ? 'Bạn Thắng! 🎉' : 'Bạn Thua! 💔';
+                document.getElementById('gameOverText').textContent = isPlayerWon ? 
+                    `Lâu đài địch bị phá huỷ ở sóng ${wave}!` : 
+                    `Lâu đài của bạn bị chiếm lấy ở sóng ${wave}!`;
+            }
+        }
+
+        function updateUpgradeButtons() {
+            const grid = document.getElementById('upgradesGrid');
+            grid.innerHTML = '';
+
+            const playerGold = wasm.get_player_gold();
+            const isGameOver = wasm.is_game_over();
+
+            const upgrades = [
+                { name: UNIT_NAMES[0], type: 0, cost: UNIT_COSTS[0] },
+                { name: UNIT_NAMES[1], type: 1, cost: UNIT_COSTS[1] },
+                { name: UNIT_NAMES[2], type: 2, cost: UNIT_COSTS[2] },
+                { name: UNIT_NAMES[3], type: 3, cost: UNIT_COSTS[3] },
+                { name: '🏛️ Nâng Cấp Era', type: 'era', cost: 300 }
+            ];
+
+            upgrades.forEach((upgrade, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'upgrade-btn';
+                btn.innerHTML = `${upgrade.name}<span class="upgrade-cost">💰${upgrade.cost}</span>`;
+                
+                const canAfford = playerGold >= upgrade.cost;
+                btn.disabled = !canAfford || isGameOver;
+
+                btn.addEventListener('click', () => {
+                    if (upgrade.type === 'era') {
+                        wasm.upgrade_player_era();
+                    } else {
+                        wasm.spawn_player_unit(upgrade.type);
+                    }
+                    updateUpgradeButtons();
+                });
+
+                grid.appendChild(btn);
+            });
+        }
+
+        // Start the game
+        main().catch(err => {
+            console.error('Failed to initialize WASM:', err);
+            document.body.innerHTML = '<h1>Lỗi: Không thể tải module Rust WASM</h1><p>' + err + '</p><p>Hãy chắc chắn bạn đã chạy: npm install && npm run build</p>';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# Rust/Cargo
+rust_src/target/
+rust_src/pkg/
+Cargo.lock
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+
+# IDE
+.idea/
+*.iml

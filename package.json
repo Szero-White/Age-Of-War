@@ -1,0 +1,13 @@
+{
+  "name": "age-of-war-wasm",
+  "version": "1.0.0",
+  "description": "Age of War 3 clone built with Rust + WASM",
+  "private": true,
+  "scripts": {
+    "build": "wasm-pack build rust_src --target web",
+    "dev": "echo Run 'npm run build' first, then open index.html in browser"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.14.0"
+  }
+}
