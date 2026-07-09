@@ -1,7 +1,7 @@
 # Age Of War
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/main/assets/h1.jpg" alt="Age Of War Banner" width="900"/> 
+  <img src="https://raw.githubusercontent.com/Szero-White/Age-Of-War/edit/main/assets/h1.jpg" alt="Age Of War Banner" width="900"/> 
 </p>
 
 <p align="center">
